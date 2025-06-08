@@ -272,13 +272,14 @@ const init = () => {
   millis = 0;
   clock = Date.now();
   document.addEventListener('touchmove', touch);
-  document.addEventListener('mousemove', touch);
+  // Mouse events are now simulated via WebSocket
   window.addEventListener('resize', resize);
   container.appendChild(gl.canvas);
   setup();
   resize();
   update();
   leap();
+  setupWebSocket();
 };
 
 const setup = () => {
@@ -386,6 +387,53 @@ const touch = (event) => {
     emitParticles(limit, [x, y, 0]);
   }
   lastEmit = millis;
+};
+
+const setupWebSocket = () => {
+  const ws = new WebSocket('ws://127.0.0.1:9980');
+  let detectInterval;
+
+  ws.onopen = () => {
+    console.log('WS connected');
+    detectInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send('detect');
+      }
+    }, 100);
+  };
+
+  ws.onclose = () => {
+    console.log('WS closed');
+    if (detectInterval) {
+      clearInterval(detectInterval);
+    }
+  };
+
+  ws.onerror = (err) => {
+    console.error('WS error', err);
+    if (detectInterval) {
+      clearInterval(detectInterval);
+    }
+  };
+
+  ws.onmessage = (ev) => {
+    try {
+      const data = JSON.parse(ev.data);
+      if (Array.isArray(data)) {
+        const touches = data.filter(item => item.pos && Array.isArray(item.pos) && item.pos.length >= 2);
+        if (touches.length === 0) return;
+        const limit = PARTICLE_EMIT_RATE / touches.length;
+        touches.forEach(item => {
+          const [x, y] = item.pos;
+          const nx = x * 2 - 1;
+          const ny = 2 * y - 1;
+          emitParticles(limit, [nx, ny, 0]);
+        });
+      }
+    } catch (e) {
+      console.warn('Non-JSON message:', ev.data);
+    }
+  };
 };
 
 const resize = () => {
