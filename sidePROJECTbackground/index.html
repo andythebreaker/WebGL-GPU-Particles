@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ntsec background</title>
+  <style>   html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(45deg, #0a2a4a, #0D121CFF, #0f3454, #1B2F47FF);
+      background-size: 400% 400%;
+      animation: deepSeaWave 8s ease-in-out infinite;
+      position: relative;
+    }:root {
+  --bubble1-color: rgba(70, 130, 180, 0.3);
+  --bubble2-color: rgba(100, 149, 237, 0.2);
+  --bubble3-color: rgba(65, 105, 225, 0.15);
+  --stripe1-color: rgba(30, 74, 107, 0.1);
+  --stripe2a-color: rgba(15, 52, 84, 0.2);
+  --stripe2b-color: rgba(45, 90, 123, 0.1);
+}
+
+
+    @keyframes deepSeaWave {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    @keyframes deepSeaTexture {
+      0% { transform: translateX(0) translateY(0); }
+      25% { transform: translateX(-10px) translateY(-5px); }
+      50% { transform: translateX(-5px) translateY(-10px); }
+      75% { transform: translateX(-15px) translateY(-2px); }
+      100% { transform: translateX(0) translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  
+</body>
+</html>

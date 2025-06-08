@@ -7,8 +7,9 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>WebGL GPU Particles</title>
-    <style>
-      html, body {
+    <!--
+    原本的背景
+    html, body {
         background: #1c3149;
         background: -moz-radial-gradient(center, ellipse cover,  #1c3149 0%, #0d121c 80%);
         background: -webkit-gradient(radial, center center, 0px, center center, 100%, color-stop(0%,#1c3149), color-stop(80%,#0d121c));
@@ -16,6 +17,14 @@
         background: -o-radial-gradient(center, ellipse cover,  #1c3149 0%,#0d121c 80%);
         background: -ms-radial-gradient(center, ellipse cover,  #1c3149 0%,#0d121c 80%);
         background: radial-gradient(ellipse at center,  #1c3149 0%,#0d121c 80%);
+        overflow: hidden;
+        height: 100%;
+        margin:0;
+      }
+    -->
+    <style>
+      html, body {
+        background:         rgba(0,0,0,0);
         overflow: hidden;
         height: 100%;
         margin:0;
