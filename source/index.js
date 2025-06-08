@@ -420,14 +420,16 @@ const setupWebSocket = () => {
     try {
       const data = JSON.parse(ev.data);
       if (Array.isArray(data)) {
-        data.forEach(item => {
-          if (item.pos && Array.isArray(item.pos) && item.pos.length >= 2) {
-            const [x, y] = item.pos;
-            const pixelX = x * window.innerWidth;
-            const pixelY = (1 - y) * window.innerHeight;
-            touch({ clientX: pixelX, clientY: pixelY });
-          }
+        const touches = data.filter(item => item.pos && Array.isArray(item.pos) && item.pos.length >= 2);
+        if (millis - lastEmit < 20) return;
+        const limit = PARTICLE_EMIT_RATE / Math.max(touches.length, 1);
+        touches.forEach(item => {
+          const [x, y] = item.pos;
+          const nx = x * 2 - 1;
+          const ny = 2 * y - 1;
+          emitParticles(limit, [nx, ny, 0]);
         });
+        lastEmit = millis;
       }
     } catch (e) {
       console.warn('Non-JSON message:', ev.data);
