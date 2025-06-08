@@ -46,6 +46,9 @@ let width;
 let scale;
 let clock;
 let gl;
+let targetCenters;
+let targetCount;
+let targetArray;
 
 // ——————————————————————————————————————————————————
 // GL Utils
@@ -128,11 +131,64 @@ const random = (min, max) => {
   return min + Math.random() * (max - min);
 };
 
+const updateTargetArray = () => {
+  for (let i = 0; i < 5; i++) {
+    const t = targetCenters[i] || [0, 0, -0.08];
+    targetArray[i * 3] = t[0];
+    targetArray[i * 3 + 1] = t[1];
+    targetArray[i * 3 + 2] = t[2];
+  }
+};
+
+const kmeans = (points, k, iterations = 10) => {
+  const centers = points.slice(0, k).map(p => [p[0], p[1]]);
+  for (let iter = 0; iter < iterations; iter++) {
+    const sums = new Array(k).fill(0).map(() => ({x: 0, y: 0, c: 0}));
+    for (const p of points) {
+      let best = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < k; i++) {
+        const dx = p[0] - centers[i][0];
+        const dy = p[1] - centers[i][1];
+        const d = dx * dx + dy * dy;
+        if (d < bestDist) { bestDist = d; best = i; }
+      }
+      sums[best].x += p[0];
+      sums[best].y += p[1];
+      sums[best].c += 1;
+    }
+    for (let i = 0; i < k; i++) {
+      if (sums[i].c > 0) {
+        centers[i][0] = sums[i].x / sums[i].c;
+        centers[i][1] = sums[i].y / sums[i].c;
+      }
+    }
+  }
+  return centers;
+};
+
+const updateTargets = (points) => {
+  if (!Array.isArray(points) || points.length === 0) {
+    targetCenters = [[0, 0, -0.08]];
+    targetCount = 1;
+  } else if (points.length < 5) {
+    targetCenters = [[0, 0, -0.08]];
+    targetCount = 1;
+  } else {
+    const centers2d = kmeans(points, 5);
+    targetCenters = centers2d.map(c => [c[0], c[1], -0.08]);
+    targetCount = targetCenters.length;
+  }
+  updateTargetArray();
+};
+
 const createPhysicsProgram = () => {
   const program = createProgram(physicsVS, physicsFS);
   program.vertexPosition = gl.getAttribLocation(program, 'vertexPosition');
   program.physicsData = gl.getUniformLocation(program, 'physicsData');
   program.bounds = gl.getUniformLocation(program, 'bounds');
+  program.targets = gl.getUniformLocation(program, 'targets');
+  program.targetCount = gl.getUniformLocation(program, 'targetCount');
   gl.enableVertexAttribArray(program.vertexPosition);
   return program;
 };
@@ -293,6 +349,10 @@ const setup = () => {
   debugProgram = createDebugProgram();
   copyProgram = createCopyProgram();
   frameBuffer = createFramebuffer();
+  targetCenters = [[0, 0, -0.08]];
+  targetCount = 1;
+  targetArray = new Float32Array(15);
+  updateTargetArray();
 };
 
 const physics = () => {
@@ -301,6 +361,8 @@ const physics = () => {
   gl.bindBuffer(gl.ARRAY_BUFFER, viewportQuadBuffer);
   gl.vertexAttribPointer(physicsProgram.vertexPosition, 2, gl.FLOAT, gl.FALSE, 0, 0);
   gl.uniform2f(physicsProgram.bounds, PARTICLE_DATA_WIDTH, PARTICLE_DATA_HEIGHT);
+  gl.uniform1i(physicsProgram.targetCount, targetCount);
+  gl.uniform3fv(physicsProgram.targets, targetArray);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, physicsInputTexture);
   gl.uniform1i(physicsProgram.physicsData, 0);
@@ -422,12 +484,15 @@ const setupWebSocket = () => {
       if (Array.isArray(data)) {
         const touches = data.filter(item => item.pos && Array.isArray(item.pos) && item.pos.length >= 2);
         if (touches.length === 0) return;
+        const points = [];
         touches.forEach(item => {
           const [x, y] = item.pos;
           const nx = x * 2 - 1;
           const ny = 2 * y - 1;
           emitParticles(800, [nx, ny, 0]);
+          points.push([nx, ny]);
         });
+        updateTargets(points);
       }
     } catch (e) {
       console.warn('Non-JSON message:', ev.data);
