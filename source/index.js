@@ -272,13 +272,14 @@ const init = () => {
   millis = 0;
   clock = Date.now();
   document.addEventListener('touchmove', touch);
-  document.addEventListener('mousemove', touch);
+  // Mouse events are now simulated via WebSocket
   window.addEventListener('resize', resize);
   container.appendChild(gl.canvas);
   setup();
   resize();
   update();
   leap();
+  setupWebSocket();
 };
 
 const setup = () => {
@@ -386,6 +387,52 @@ const touch = (event) => {
     emitParticles(limit, [x, y, 0]);
   }
   lastEmit = millis;
+};
+
+const setupWebSocket = () => {
+  const ws = new WebSocket('ws://127.0.0.1:9980');
+  let detectInterval;
+
+  ws.onopen = () => {
+    console.log('WS connected');
+    detectInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send('detect');
+      }
+    }, 100);
+  };
+
+  ws.onclose = () => {
+    console.log('WS closed');
+    if (detectInterval) {
+      clearInterval(detectInterval);
+    }
+  };
+
+  ws.onerror = (err) => {
+    console.error('WS error', err);
+    if (detectInterval) {
+      clearInterval(detectInterval);
+    }
+  };
+
+  ws.onmessage = (ev) => {
+    try {
+      const data = JSON.parse(ev.data);
+      if (Array.isArray(data)) {
+        data.forEach(item => {
+          if (item.pos && Array.isArray(item.pos) && item.pos.length >= 2) {
+            const [x, y] = item.pos;
+            const pixelX = x * window.innerWidth;
+            const pixelY = (1 - y) * window.innerHeight;
+            touch({ clientX: pixelX, clientY: pixelY });
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Non-JSON message:', ev.data);
+    }
+  };
 };
 
 const resize = () => {
