@@ -420,13 +420,14 @@ const setupWebSocket = () => {
     try {
       const data = JSON.parse(ev.data);
       if (Array.isArray(data)) {
-        data.forEach(item => {
-          if (item.pos && Array.isArray(item.pos) && item.pos.length >= 2) {
-            const [x, y] = item.pos;
-            const pixelX = x * window.innerWidth;
-            const pixelY = (1 - y) * window.innerHeight;
-            touch({ clientX: pixelX, clientY: pixelY });
-          }
+        const touches = data.filter(item => item.pos && Array.isArray(item.pos) && item.pos.length >= 2);
+        if (touches.length === 0) return;
+        const limit = PARTICLE_EMIT_RATE / touches.length;
+        touches.forEach(item => {
+          const [x, y] = item.pos;
+          const nx = x * 2 - 1;
+          const ny = 2 * y - 1;
+          emitParticles(limit, [nx, ny, 0]);
         });
       }
     } catch (e) {
