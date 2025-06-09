@@ -153,10 +153,10 @@ def onWebSocketOpen(webServerDAT, client, uri):
 def onWebSocketClose(webServerDAT, client):
     return
 
-obs_array = []  # 全域變數，用來儲存OBS訊息
+obstaclesGLOBE = []    # 新增的障礙物資料變數
 
 def onWebSocketReceiveText(webServerDAT, client, data):
-    global ptsGLOBE, obs_array  # 使用全域變數
+    global ptsGLOBE, obstaclesGLOBE  # 宣告全域變數
     msg = data.strip()
 
     if msg.lower() == 'detect':
@@ -176,19 +176,25 @@ def onWebSocketReceiveText(webServerDAT, client, data):
             webServerDAT.webSocketSendText(client, "Invalid JSON payload")
 
     elif msg.startswith('OBS'):
-        # 取出 OBS 開頭的 payload 並加入 obs_array
-        obs_payload = msg[3:].strip()
-        obs_array.append(obs_payload)
-        webServerDAT.webSocketSendText(client, f"OBS received: {obs_payload}")
+        try:
+            payload = msg[3:].strip()
+            obs = json.loads(payload)
+            if isinstance(obs, list) and all(isinstance(p, list) and len(p) == 2 for p in obs):
+                obstaclesGLOBE = obs
+                webServerDAT.webSocketSendText(client, "obstaclesGLOBE updated")
+            else:
+                webServerDAT.webSocketSendText(client, "Invalid format: expecting List[List[float]]")
+        except json.JSONDecodeError:
+            webServerDAT.webSocketSendText(client, "Invalid JSON payload in OBS")
 
     elif msg == 'GBS':
-        # 回傳目前所有 OBS 資料
-        webServerDAT.webSocketSendText(client, json.dumps(obs_array))
+        webServerDAT.webSocketSendText(client, json.dumps(obstaclesGLOBE))
 
     else:
         webServerDAT.webSocketSendText(client, data)
 
     return
+
 
 
 def onWebSocketReceiveBinary(webServerDAT, client, data):
