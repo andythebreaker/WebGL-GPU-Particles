@@ -153,17 +153,18 @@ def onWebSocketOpen(webServerDAT, client, uri):
 def onWebSocketClose(webServerDAT, client):
     return
 
+obs_array = []  # 全域變數，用來儲存OBS訊息
+
 def onWebSocketReceiveText(webServerDAT, client, data):
-    global ptsGLOBE  # 明確宣告使用全域變數
+    global ptsGLOBE, obs_array  # 使用全域變數
     msg = data.strip()
 
     if msg.lower() == 'detect':
-        #pts = detect_circles()                   # [[nx, ny], ...]
-        tracked_circles = track_circles(ptsGLOBE)     # Track circles and calculate movement
+        tracked_circles = track_circles(ptsGLOBE)
         webServerDAT.webSocketSendText(client, json.dumps(tracked_circles))
+
     elif msg.lower().startswith('set'):
         try:
-            # 嘗試從"set"之後的部分載入JSON資料
             payload = msg[3:].strip()
             pts = json.loads(payload)
             if isinstance(pts, list) and all(isinstance(p, list) and len(p) == 2 for p in pts):
@@ -173,11 +174,22 @@ def onWebSocketReceiveText(webServerDAT, client, data):
                 webServerDAT.webSocketSendText(client, "Invalid format: expecting List[List[float]]")
         except json.JSONDecodeError:
             webServerDAT.webSocketSendText(client, "Invalid JSON payload")
+
+    elif msg.startswith('OBS'):
+        # 取出 OBS 開頭的 payload 並加入 obs_array
+        obs_payload = msg[3:].strip()
+        obs_array.append(obs_payload)
+        webServerDAT.webSocketSendText(client, f"OBS received: {obs_payload}")
+
+    elif msg == 'GBS':
+        # 回傳目前所有 OBS 資料
+        webServerDAT.webSocketSendText(client, json.dumps(obs_array))
+
     else:
-        # 其他訊息照原樣回傳
         webServerDAT.webSocketSendText(client, data)
 
     return
+
 
 def onWebSocketReceiveBinary(webServerDAT, client, data):
     webServerDAT.webSocketSendBinary(client, data)
