@@ -175,7 +175,7 @@ def onWebSocketReceiveText(webServerDAT, client, data):
         except json.JSONDecodeError:
             webServerDAT.webSocketSendText(client, "Invalid JSON payload")
 
-    elif msg.startswith('OBS'):
+    elif msg.startswith('obs'):
         try:
             payload = msg[3:].strip()
             obs = json.loads(payload)
@@ -187,7 +187,7 @@ def onWebSocketReceiveText(webServerDAT, client, data):
         except json.JSONDecodeError:
             webServerDAT.webSocketSendText(client, "Invalid JSON payload in OBS")
 
-    elif msg == 'GBS':
+    elif msg == 'gbs':
         webServerDAT.webSocketSendText(client, json.dumps(obstaclesGLOBE))
 
     else:
